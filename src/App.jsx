@@ -1,7 +1,6 @@
 import { useState } from "react";
 import xlsx from "json-as-xlsx";
 import cityCode from "./cityCode";
-import provinceId from "./provinceId";
 
 function App() {
   const [nationalId, setNationalId] = useState("");
@@ -9,39 +8,55 @@ function App() {
   const [nationalIdCity, setNationalIdCity] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [nationalIdCount, setNationalIdCount] = useState(1);
+  const [selectedCity,setSelectedCity] = useState("105")
+  const [onlySelectedCity,setOnlySelectedCity] = useState(false) ; 
 
   function nationalIdGenerator() {
     var list = [],
-      sum = 0;
-
+    sum = 0;
+    
     for (var i = 10; i > 1; i--) {
-      var j = Math.floor(Math.random() * Math.floor(10));
-      list.push(j);
-      sum += j * i;
+    var j = Math.floor(Math.random() * Math.floor(10));
+    list.push(j);
+    sum += j * i;
     }
-
+    
     var s = sum % 11;
     if (s < 2) {
-      list.push(s);
+    list.push(s);
     } else if (s >= 2) {
-      list.push(11 - s);
+    list.push(11 - s);
     }
-
-    setNationalId(list.join(""));
-    const city = cityCode.find(
-      (city) => city.code === list.join("").slice(0, 3)
-    );
-    setNationalIdCity(city?.city);
-    const province = provinceId.find(
-      (province) => province?.code === city?.parentCode
-    )?.city;
-    setNationalIdProvince(province);
+    
+    const nationalId = list.join("");
+    const city = cityCode[`${nationalId.slice(0, 3)}`];
+    
+    if (onlySelectedCity) {
+    if (selectedCity === nationalId.slice(0, 3)) {
     return {
-      nationalId: list.join(""),
-      city: city?.city ?? "نا مشخص",
-      province: province ?? "نا مشخص",
+    nationalId: nationalId,
+    city: city?.[1] ?? "نا مشخص",
+    province: city?.[0] ?? "نا مشخص",
     };
-  }
+    } else {
+    return nationalIdGenerator();
+    }
+    } else {
+    if (city?.[1] && city?.[0]) {
+    setNationalId(nationalId);
+    setNationalIdCity(city?.[1]);
+    setNationalIdProvince(city?.[0]);
+    
+    return {
+    nationalId: nationalId,
+    city: city?.[1] ?? "نا مشخص",
+    province: city?.[0] ?? "نا مشخص",
+    };
+    } else {
+    return nationalIdGenerator();
+    }
+    }
+    }
 
   function nationalIdRoundGenerator() {
     var list = [],
@@ -67,24 +82,21 @@ function App() {
       return nationalIdRoundGenerator();
     }
 
-    setNationalId(list.join(""));
-    const city = cityCode.find(
-      (city) => city.code === list.join("").slice(0, 3)
-    );
-    setNationalIdCity(city?.city);
-    const province = provinceId.find(
-      (province) => province?.code === city?.parentCode
-    )?.city;
-    setNationalIdProvince(province);
-    return {
-      nationalId: list.join(""),
-      city: city?.city ?? "نا مشخص",
-      province: province ?? "نا مشخص",
-    };
+    const nationalId = list.join("") ; 
+    const city = cityCode[`${nationalId.slice(0, 3)}`]
+
+      if(city?.[1] && city?.[0]){
+        setNationalId(nationalId);
+        setNationalIdCity(city?.[1]);
+        setNationalIdProvince(city?.[0]);
+      }else{
+        nationalIdRoundGenerator(false) ; 
+      }
+    
   }
 
   let settings = {
-    fileName: `فایل کد ملی مورخ ${new Date().toLocaleDateString()}`,
+    fileName: `فایل کد ملی مورخ ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} ${onlySelectedCity ? `شهر ${cityCode?.[selectedCity]}` : ''}`,
     extraLength: 3,
     writeMode: "writeFile",
     RTL: true,
@@ -96,7 +108,9 @@ function App() {
       <div className="grid md:grid-cols-2 grid-cols-1 max-w-[30rem] gap-4">
         <button
           className="p-2 border bg-indigo-800 rounded-lg"
-          onClick={nationalIdGenerator}
+          onClick={()=>{
+            nationalIdGenerator()
+          }}
         >
           تولید کد ملی
         </button>
@@ -148,6 +162,32 @@ function App() {
 
       <div className="flex flex-col gap-2">
         <p className="text-center">دانلود فایل کد ملی به صورت اکسل EXCEL</p>
+        <label htmlFor="cityPicker">
+          انتخاب شهر
+        </label>
+        <select id='cityPicker' className="block w-full bg-blue-950 text-gray-100 border-2 rounded p-2 focus:outline-none" 
+        onChange={(e)=>{
+          setSelectedCity(e.target.value)
+        }}>
+              {
+
+                Object.entries(cityCode).map((item,index)=>
+                
+                  <option value={item[0]} key={index}>
+                    {
+                      `${item[1][0]} - ${item[1][1]}`
+                    }
+                  </option>
+                
+                )
+              }
+        </select>
+        <label htmlFor="onlySelectedCity" className="flex items-center gap-2">
+        <input id="onlySelectedCity" type="checkbox" value={onlySelectedCity}  onChange={(e)=>{
+          setOnlySelectedCity(e.target.value === "false" ? true : false)
+        }}/>
+          لیست کد ملی ها فقط از شهر انتخابی باشد
+        </label>
         <label
           className="block tracking-wide text-gray-100 font-bold sm:text-left text-center"
           htmlFor="nationaIdCount"
